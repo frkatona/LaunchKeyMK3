@@ -1,13 +1,11 @@
-# name=Novation Launchkey 49 MK3
-#Script_Madeby_SheltonChiramal
-#Instagram_@tenshells
+# name=FRK Launchkey 49 MKII
+# forked from Shelton Chiramal - https://github.com/tenshells/LaunchKeyMK3
 
 import transport
 import midi
 import mixer
 import general
-
-#shells imports
+import device
 import ui
 import channels
 import playlist
@@ -15,20 +13,14 @@ import launchMapPages
 import plugins
 # import pykeys
 
-#Below are the variables which can be changed
 play_button = 115
-stop_button = 116
+stop_button = 114
 record_button = 117
 undo_button = 77
 loop_button = 118
 
-#shells changes
-prev =102
-next =103
-
-# TODO:
-# PITCH WHEEL AUTO TO EVERY DIRTY CHANNEL,
-
+prev =103
+next =102
 
 capmidi = 74
 quant = 75
@@ -37,7 +29,6 @@ DeviceSelect =51
 DeviceLock = 52
 DS = -1
 
-
 RightArrow = 104
 SSM = 105
 
@@ -45,49 +36,46 @@ UpArrow = 106
 DownArrow = 107
 
 fadbut1 = 11
-#exit shells
 
 fader = (71,72,73,74,75,76,77,78,79)
-
 knobs = [21,22,23,24,25,26,27,28]
 
-#Function starts from below
+# def OnInit():
+    # light up the buttons
+    # for i in range(0, 16):
+    #     device.midiOutMsg(0x90, i, 0x7F)
+
 def OnMidiMsg(transport_controller):
-    transport_controller.handled= False
+
     print(transport_controller.midiId,transport_controller.status, transport_controller.port, transport_controller.data1, transport_controller.data2)
+    transport_controller.handled= False
+
     if transport_controller.midiId == midi.MIDI_CONTROLCHANGE:
-        #buttons
+
         tc = transport_controller
         global Mr,Ml,Mu,Md
         if transport_controller.data2 > 0 and transport_controller.midiId ==176:
             
-            #Basic Transport Controls
+            ## Basic Transport Controls ##
             if transport_controller.data1 == play_button:
-                print('Start')
-                # print(f"Here port is {transport_controller.port} and it is of type {type(transport_controller.port)}")
                 transport.start()
                 transport_controller.handled = True
             if transport_controller.data1 == stop_button:
-                print('Stop')
                 transport.stop()
                 transport_controller.handled = True
             if transport_controller.data1 == record_button:
-                print('Record')
                 transport.record()
                 transport_controller.handled = True
             if transport_controller.data1 == loop_button:
-                print('Pattern/Song Mode')
                 transport.setLoopMode()
-            if transport_controller.data1 == prev:
-                print('General Previous and livePlaylist +1s')
-                ui.previous()
-                transport_controller.handled = True		
             if transport_controller.data1 == next:
-                print('General Next and livePlaylist -1s')
                 ui.next()
+                transport_controller.handled = True		
+            if transport_controller.data1 == prev:
+                ui.previous()
                 transport_controller.handled = True	
             
-            #up and down arrows for prev,next presets... #redundant with current jog wheels doing same thing :)
+            ## Plugin Preset Changes ##
             if transport_controller.data1 == UpArrow:
                 print('prevPreset')
                 plugins.prevPreset(channels.selectedChannel())
@@ -97,7 +85,7 @@ def OnMidiMsg(transport_controller):
                 plugins.nextPreset(channels.selectedChannel())
                 transport_controller.handled = True
             
-            #switch Channel Rack -> Playlist -> Mixer
+            ## Editor Window Switching (Channel Rack -> Playlist -> Mixer) ##
             if transport_controller.data1 == DeviceSelect:
                 if transport_controller.data2 == 127:
                     global DS
@@ -186,10 +174,12 @@ def OnMidiMsg(transport_controller):
             channels.setChannelPan(channels.selectedChannel(),tc.data2/63.5 - 1)
             transport_controller.handled = True	           
     
-    #Pitch Wheel controls pitch with semitone range +-12
     if transport_controller.midiId == 224:
-        print('Pitch Bend Range')
-        channels.setChannelPitch(channels.selectedChannel(),12,2)
+        #int midiId, int channel, int data1, int data2
+        for i in range(1, 125):
+            device.midiOutMsg(144, 16, i, 50)  
+
+        channels.setChannelPitch(channels.selectedChannel(),2,2)
         pro = transport_controller.data2 * 128 + transport_controller.data1        
         channels.setChannelPitch(channels.selectedChannel(),pro/8192 -1)
         transport_controller.handled = True	
